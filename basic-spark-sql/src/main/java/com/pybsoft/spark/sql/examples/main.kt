@@ -4,7 +4,6 @@ import org.apache.spark.sql.Column
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.sources.IsNotNull
 import org.apache.spark.sql.functions.desc
 
 
@@ -62,7 +61,7 @@ fun main(args: Array<String>) {
     //Show sites with last_update year greater or equal than 2013 and status active. Using an string expression
     sitesDataset.filter("status='Active' and last_update >= '2013'").sort(desc("last_update")).show(100,false)
 
-    //Shwo site contact name and phone for each center, using sql
+    //Shows site contact name and phone for each center, using sql
     sitesDataset.createOrReplaceTempView("nasa_sites")
     session.sql("SELECT center,contact,phone,zipcode FROM nasa_sites WHERE status='Active' GROUP BY center,contact,phone,zipcode ORDER BY center").show(false)
 
