@@ -1,4 +1,4 @@
-#APACHE SPARK + KOTLIN
+# APACHE SPARK + KOTLIN
 
 This repository contains some examples of how to use the Apache Spark Java API with Kotlin
 
