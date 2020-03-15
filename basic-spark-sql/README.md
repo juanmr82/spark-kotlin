@@ -1,4 +1,4 @@
-# Basic Spark Sql
+# Basic Spark SQL
 
 This module uses the NASA's Facilities Dataset (https://data.nasa.gov/Management-Operations/NASA-Facilities/gvk9-iz74) 
 to do some basic processing using Apache Spark with Kotlin
