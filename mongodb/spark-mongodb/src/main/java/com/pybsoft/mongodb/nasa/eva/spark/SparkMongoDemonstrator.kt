@@ -84,7 +84,7 @@ class SparkMongoDemonstrator : CliktCommand(), AutoCloseable {
 
         //The crew members are separated by several whitespaces (if more than 1). Convert this column into an array
         //At this point, since we create a new column, we switch from a Dataset<EVA> to a Dataset<Row> (aka Dataframe)
-        val evasFinalDS = evasDataSet.withColumn(Columns.CREW_MEMBERS, split(Column(EVA::crew.name), "\\s{2,}")
+        val evasFinalDS = evasDataSet.withColumn(CREW_MEMBERS, split(Column(EVA::crew.name), "\\s{2,}")
                 .cast("array<String>"))
                 .drop(Column(EVA::crew.name))
                 .withColumn(EVA::crew.name, explode(Column(CREW_MEMBERS)))
