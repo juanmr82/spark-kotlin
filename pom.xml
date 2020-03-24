@@ -21,6 +21,8 @@
         <kmongo.version>3.12.2</kmongo.version>
         <clikt.version>1.3.0</clikt.version>
         <simple-log4j.version>1.7.25</simple-log4j.version>
+        <maven.shade.version>3.2.1</maven.shade.version>
+        <mongo.spark.version>2.4.1</mongo.spark.version>
     </properties>
 
     <dependencyManagement>
@@ -85,6 +87,12 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
                 <version>${simple-log4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mongodb.spark</groupId>
+                <artifactId>mongo-spark-connector_2.11</artifactId>
+                <version>${mongo.spark.version}</version>
             </dependency>
 
 

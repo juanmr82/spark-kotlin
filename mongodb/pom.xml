@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>mongo-commons</module>
         <module>nasa-eva-importer</module>
         <module>spark-mongodb</module>
     </modules>

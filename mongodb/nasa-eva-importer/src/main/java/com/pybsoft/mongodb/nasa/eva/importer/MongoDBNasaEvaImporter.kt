@@ -10,7 +10,7 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import com.mongodb.BasicDBObject
 import com.mongodb.MongoClient
-import com.pybsoft.mongodb.nasa.eva.importer.model.EVA
+import com.pybsoft.mongodb.nasa.eva.model.EVA
 import org.litote.kmongo.KMongo
 import org.litote.kmongo.getCollection
 import org.slf4j.LoggerFactory
