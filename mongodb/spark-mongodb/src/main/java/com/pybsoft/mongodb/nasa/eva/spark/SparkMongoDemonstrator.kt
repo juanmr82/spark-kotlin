@@ -7,10 +7,6 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import com.mongodb.spark.MongoSpark
 import com.pybsoft.mongodb.nasa.eva.model.EVA
-import com.pybsoft.mongodb.nasa.eva.spark.SparkMongoDemonstrator.Columns.COUNT
-import com.pybsoft.mongodb.nasa.eva.spark.SparkMongoDemonstrator.Columns.CREW_MEMBERS
-import com.pybsoft.mongodb.nasa.eva.spark.SparkMongoDemonstrator.Columns.DURATION_SECONDS
-import com.pybsoft.mongodb.nasa.eva.spark.SparkMongoDemonstrator.Columns.NR_ISS_EVAS
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.SparkSession
@@ -53,7 +49,6 @@ class SparkMongoDemonstrator : CliktCommand(), AutoCloseable {
         const val CREW_MEMBERS = "crew_members"
         const val NR_ISS_EVAS = "nr_iss_evas"
         const val DURATION_SECONDS = "duration_seconds"
-        const val COUNT = "count"
     }
 
 
@@ -75,6 +70,9 @@ class SparkMongoDemonstrator : CliktCommand(), AutoCloseable {
                 .orCreate
 
 
+        //Register the UDF to convert duration string into seconds
+        session.sqlContext().udf().register(UDF_NAME, createDurationToTSUDF(), DataTypes.LongType)
+
         //Only interested in ISS based EVAs
         val evasDataSet = MongoSpark.load(JavaSparkContext(session.sparkContext()))
                 //Construct the dataset. We use the bean class EVA to give a small example of how to use Dataset API
@@ -84,44 +82,26 @@ class SparkMongoDemonstrator : CliktCommand(), AutoCloseable {
 
         //The crew members are separated by several whitespaces (if more than 1). Convert this column into an array
         //At this point, since we create a new column, we switch from a Dataset<EVA> to a Dataset<Row> (aka Dataframe)
-        val evasFinalDS = evasDataSet.withColumn(CREW_MEMBERS, split(Column(EVA::crew.name), "\\s{2,}")
+        val evasFinalDS = evasDataSet.withColumn(Columns.CREW_MEMBERS, split(Column(EVA::crew.name), "\\s{2,}")
                 .cast("array<String>"))
                 .drop(Column(EVA::crew.name))
-                .withColumn(EVA::crew.name, explode(Column(CREW_MEMBERS)))
-                .drop(CREW_MEMBERS)
+                .withColumn(EVA::crew.name, explode(Column(Columns.CREW_MEMBERS)))
+                .drop(Columns.CREW_MEMBERS)
                 .filter(Column(EVA::crew.name).notEqual(""))
+                .withColumn(Columns.DURATION_SECONDS, callUDF(UDF_NAME, Column(EVA::duration.name)).alias("avg_duration"))
                 .cache()
 
+        val maxAvgMinDF = evasFinalDS.groupBy(EVA::crew.name)
+                .agg(
+                        count(EVA::crew.name).alias(Columns.NR_ISS_EVAS),
+                        max(Columns.DURATION_SECONDS).alias("max_duration"),
+                        round(avg(Columns.DURATION_SECONDS)).alias("average_duration"),
+                        min(Columns.DURATION_SECONDS).alias("min_duration")
+                ).sort(desc(Columns.NR_ISS_EVAS))
 
-        val nrIssEvasCountry = evasFinalDS
-                .groupBy(EVA::country.name)
-                .count()
-                .withColumnRenamed("count", NR_ISS_EVAS)
-
-        logger.info("Writing Number of ISS EVAs per country statistic to MongoDB")
-        MongoSpark.save(nrIssEvasCountry)
-
-        val nrIssEvasCrew = evasFinalDS
-                .groupBy(EVA::crew.name)
-                .count()
-                .withColumnRenamed(COUNT, NR_ISS_EVAS)
-                .sort(desc(NR_ISS_EVAS))
-
-        logger.info("Writing Number of ISS EVAs per crew member to MongoDB")
-        MongoSpark.save(nrIssEvasCrew)
-
-
-        //Register the UDF to convert duration string into seconds
-        session.sqlContext().udf().register(UDF_NAME, createDurationToTSUDF(), DataTypes.LongType)
-
-        //Gets the average duration in seconds of EVAS done by crew member
-        val avgDurationOfEvasPerCrewMember = evasFinalDS.withColumn(DURATION_SECONDS, callUDF(UDF_NAME, Column(EVA::duration.name)))
-                .groupBy(EVA::crew.name)
-                .avg(DURATION_SECONDS)
-                .sort(desc("avg($DURATION_SECONDS)"))
-
-        logger.info("Writing Average duration in seconds of EVAS done by crew member")
-        MongoSpark.save(avgDurationOfEvasPerCrewMember)
+        logger.info("Writing Min, Max and Avg duration in seconds Stats on EVAS per crew member into MongoDB")
+        //Save Simple stats Dataframe
+        MongoSpark.save(maxAvgMinDF)
 
         //Removing Dataframe from cache
         evasFinalDS.unpersist()
